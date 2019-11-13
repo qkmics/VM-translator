@@ -13,6 +13,7 @@ Preprocessor::Preprocessor(string inputFileName)
 	}
 
 }
+
 Preprocessor::~Preprocessor()
 {
 
@@ -20,8 +21,12 @@ Preprocessor::~Preprocessor()
 	inputFile.close();
 }
 
-
-/*@return code without comments and spaces*/
+/*	
+	@Read code in the input file. Returns code without comments, tabs and redundent wraps.
+	Used infinite state machine.
+	
+	@return Code after preprocessing
+*/
 vector<string> Preprocessor::preprocess(void)
 {
 	//open the input file and output file

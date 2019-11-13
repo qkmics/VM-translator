@@ -7,8 +7,11 @@ using namespace std;
 class Code
 {
 public:
+	
 	Code(string outputFileName);
+
 	~Code();
+	
 	void generateCode(const vector<vector<string>>& fields);
 	
 private:
@@ -16,6 +19,8 @@ private:
 
 	string outputFileName;
 
+	// It is used for "eq", "gt" and "lt". Translating these vm language code needs lables in assemble language 
+	// code. It is used to make sure that these lables do not repeat.
 	int compAriNumber;
 
 	unordered_map<string, vector<string>> codeTable;

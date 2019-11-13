@@ -1,0 +1,61 @@
+///////////////////////////////////////////////////////////////////////////
+Program flow:
+lable loop
+	(loop)
+
+goto loop
+	@loop
+	0;JMP
+
+if-goto loop
+	@SP
+	AM = M - 1
+	D = M
+	@loop
+	D;JNE
+/////////////////////////////////////////////////////////////////////////
+Function calling:
+function f n
+
+
+call f m
+	@SP
+	A = M
+	M = f-return-address
+	@SP
+	M = M+ 1
+
+	@LCL
+	D = M
+	@SP
+	A = M 
+	M = D
+	@SP
+ 	M = M + 1
+	
+	@ARG
+	D = M
+	@SP
+	A = M 
+	M = D
+	@SP
+ 	M = M + 1
+
+	@THIS
+	D = M
+	@SP
+	A = M 
+	M = D
+	@SP
+ 	M = M + 1
+
+	@THAT
+	D = M
+	@SP
+	A = M 
+	M = D
+	@SP
+ 	M = M + 1
+
+	
+return 

@@ -1,4 +1,11 @@
 #include "parser.h"
+
+/*
+	Parse all of the code input, return code of underlying fields
+	
+	@param lines Vm code after preprocessing
+	@return Code after parsing. All in underlying fields
+*/
 vector<vector<string>> Parser::parse(vector<string> lines)
 {
 	vector<vector<string>> fields;
@@ -6,7 +13,9 @@ vector<vector<string>> Parser::parse(vector<string> lines)
 		fields.push_back(parseOneLine(lines[i]));
 	return fields;
 }
-vector<string> Parser::split(const string& str, char c)  //split a string 
+
+//Split a string, returns the vector of string after spliting 
+vector<string> Parser::split(const string& str, char c)
 {
 	vector<string> result;
 	string temp = "";
@@ -26,6 +35,8 @@ vector<string> Parser::split(const string& str, char c)  //split a string
 		result.push_back(temp);
 	return result;
 }
+
+//Parse one line of code
 vector<string> Parser::parseOneLine(string line)
 {
 	vector<string> parts = split(line, ' ');  

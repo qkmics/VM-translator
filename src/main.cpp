@@ -19,11 +19,11 @@ int main(int argc, char* argv[])
 	outputName += "asm";
 
 	Preprocessor preprocessor(inputName);
-	vector<string> inLines = preprocessor.preprocess();		//preprocess input file
+	vector<string> inLines = preprocessor.preprocess();				//preprocess input file
 	Parser parser;
 	vector<vector<string>> fields = parser.parse(inLines);			//parse
-	Code code(outputName);												//build code tables
-	code.generateCode(fields);	//do translation
+	Code code(outputName);											//build code tables
+	code.generateCode(fields);										//do translation
 
 	cout << "Output file is " << outputName << endl;
 	return 0;

@@ -1,5 +1,53 @@
 #include "code.h"
-vector<string> Code::split(const string& str, char c)  //split a string 
+
+Code::Code(string outputFileName)
+{
+	compAriNumber = 0;
+	this->outputFileName = extractFileName(outputFileName);
+	outputFile.open(outputFileName);
+
+	codeTable["add"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M + D" };
+	codeTable["sub"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M - D" };
+	codeTable["neg"] = { "@SP","A=M-1","M=-M" };
+	codeTable["eq"] = { "@SP","AM = M - 1","D = M","A = A - 1","D = M - D","@FALSE","D;JNE","@SP","A=M-1","M=-1",
+						"@CONTINUE","0;JMP","FALSE","@SP","A=M-1","M=0","CONTINUE" };
+	codeTable["gt"] = { "@SP","AM = M - 1","D = M","A = A - 1","D = M - D","@FALSE","D;JLE","@SP","A=M-1","M=-1",
+						"@CONTINUE","0;JMP","FALSE","@SP","A=M-1","M=0","CONTINUE" };
+	codeTable["lt"] = { "@SP","AM = M - 1","D = M","A = A - 1","D = M - D","@FALSE","D;JGE","@SP","A=M-1","M=-1",
+						"@CONTINUE","0;JMP","FALSE","@SP","A=M-1","M=0","CONTINUE" };
+	codeTable["and"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M & D" };
+	codeTable["or"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M | D" };
+	codeTable["not"] = { "@SP","A=M-1","M=!M" };
+}
+
+Code::~Code()
+{
+	outputFile.close();
+}
+
+/*
+	Generate assembler code from the underlying fields of code produced by parser
+
+	@para Underlying fields of code produced by parser.
+*/
+void Code::generateCode(const vector<vector<string>>& fields)
+{
+	for (auto onelineField : fields)
+	{
+		string code;
+		if (onelineField[0] == "C_PUSH" || onelineField[0] == "C_POP")
+		{
+			generateMemAccess(onelineField[0], onelineField[1], onelineField[2]);
+		}
+		else if (onelineField[0] == "C_ARITHMETIC")
+		{
+			generateArithmetic(onelineField[1]);
+		}
+	}
+}
+
+//split a string 
+vector<string> Code::split(const string& str, char c)  
 {
 	vector<string> result;
 	string temp = "";
@@ -28,39 +76,16 @@ string Code::extractFileName(const string& fileName)
 	return strs[strs.size() - 1];
 }
 
-
-Code::Code(string outputFileName)
-{
-	compAriNumber = 0;
-	this->outputFileName = extractFileName(outputFileName);
-	outputFile.open(outputFileName);
-
-	codeTable["add"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M + D" };
-	codeTable["sub"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M - D" };
-	codeTable["neg"] = { "@SP","A=M-1","M=-M" };
-	codeTable["eq"] = { "@SP","AM = M - 1","D = M","A = A - 1","D = M - D","@FALSE","D;JNE","@SP","A=M-1","M=-1",
-						"@CONTINUE","0;JMP","FALSE","@SP","A=M-1","M=0","CONTINUE" };
-	codeTable["gt"] = { "@SP","AM = M - 1","D = M","A = A - 1","D = M - D","@FALSE","D;JLE","@SP","A=M-1","M=-1",
-						"@CONTINUE","0;JMP","FALSE","@SP","A=M-1","M=0","CONTINUE" };
-	codeTable["lt"] = { "@SP","AM = M - 1","D = M","A = A - 1","D = M - D","@FALSE","D;JGE","@SP","A=M-1","M=-1",
-						"@CONTINUE","0;JMP","FALSE","@SP","A=M-1","M=0","CONTINUE" };
-	codeTable["and"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M & D" };
-	codeTable["or"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M | D" };
-	codeTable["not"] = { "@SP","A=M-1","M=!M" };
+/*
+	Generate an arithmetic operation. Including add, sub, neg, eq, gt, lt, and, or, not
 	
-
-}
-Code::~Code()
-{
-	outputFile.close();
-}
-
+	@para operation A string of operation. Such as "add", "sub"
+*/
 void Code::generateArithmetic(string operation)
 {
 	vector<string> outlines = codeTable[operation];
 	for (string outLine : outlines)
 	{
-
 		if (outLine == "@FALSE" || outLine == "@CONTINUE")
 			outLine += to_string(compAriNumber);
 		else if (outLine == "FALSE" || outLine == "CONTINUE")
@@ -72,6 +97,13 @@ void Code::generateArithmetic(string operation)
 		compAriNumber++;
 }
 
+/*
+	Generate an memory access operation. 
+
+	@para operation "C_PUSH" or "C_POP"
+	@para segment "constant", "local", "static", and so on. 
+	@para offset A integer used to add to the segment to get the real address.
+*/
 void Code::generateMemAccess(string operation, string segment, string offset)
 {
 	if (segment == "constant")
@@ -86,8 +118,8 @@ void Code::generateMemAccess(string operation, string segment, string offset)
 		generatTemp(operation, offset);
 }
 
-
-void Code::generatLATT(string operation, string segment, string offset)  //segment=local,argument,this,that
+//segment = local, argument, this, that
+void Code::generatLATT(string operation, string segment, string offset)  
 {
 	string outSegment = "";
 	if (segment == "local")
@@ -115,7 +147,8 @@ void Code::generatLATT(string operation, string segment, string offset)  //segme
 	}
 }
 
-void Code::generatConstant(string offset)								//segment=constant
+//segment=constant
+void Code::generatConstant(string offset)								
 {
 	outputFile << "@" + offset << endl;
 	outputFile << "D=A" << endl;
@@ -126,7 +159,8 @@ void Code::generatConstant(string offset)								//segment=constant
 	outputFile << "M=M+1" << endl;
 }
 
-void Code::generatStatic(string operation, string offset)  //segment=static
+//segment=static
+void Code::generatStatic(string operation, string offset)  
 {
 	if (operation == "C_PUSH")
 	{
@@ -142,7 +176,9 @@ void Code::generatStatic(string operation, string offset)  //segment=static
 		output(outLines);
 	}
 }
-void Code::generatPointer(string operation, string offset)  //segment=pointer
+
+//segment=pointer
+void Code::generatPointer(string operation, string offset) 
 {
 	string pointer;
 	if (offset == "0")
@@ -163,7 +199,9 @@ void Code::generatPointer(string operation, string offset)  //segment=pointer
 		output(outLines);
 	}
 }
-void Code::generatTemp(string operation, string offset)  //segment=temp
+
+//segment=temp
+void Code::generatTemp(string operation, string offset)  
 {
 	string segment = to_string(stoi(offset)+5);
 	if (operation == "C_PUSH")
@@ -180,22 +218,8 @@ void Code::generatTemp(string operation, string offset)  //segment=temp
 		output(outLines);
 	}
 }
-void Code::generateCode(const vector<vector<string>>& fields)
-{
-	for (auto onelineField : fields)
-	{
-		string code;
-		if (onelineField[0] == "C_PUSH"|| onelineField[0] == "C_POP")
-		{
-			generateMemAccess(onelineField[0], onelineField[1], onelineField[2]);
-		}
-		else if (onelineField[0] == "C_ARITHMETIC")
-		{
-			generateArithmetic(onelineField[1]);
-		}
 
-	}
-}
+//Output the generated assembler code to the output file
 void Code::output(const vector<string>& outLines)
 {
 	for (string outLine : outLines)
