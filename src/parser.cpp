@@ -54,6 +54,37 @@ vector<string> Parser::parseOneLine(string line)
 		fields.push_back(parts[1]);
 		fields.push_back(parts[2]);
 	}
+	else if (parts[0] == "label") //lable instruction
+	{
+		fields.push_back("C_LABEL");
+		fields.push_back(parts[1]);
+	}
+	else if (parts[0] == "goto")
+	{
+		fields.push_back("C_GOTO");
+		fields.push_back(parts[1]);
+	}
+	else if (parts[0] == "if-goto")
+	{
+		fields.push_back("C_IF-GOTO");
+		fields.push_back(parts[1]);
+	}
+	else if (parts[0] == "function")
+	{
+		fields.push_back("C_FUNCTION");
+		fields.push_back(parts[1]);
+		fields.push_back(parts[2]);
+	}
+	else if (parts[0] == "call")
+	{
+		fields.push_back("C_CALL");
+		fields.push_back(parts[1]);
+		fields.push_back(parts[2]);
+	}
+	else if (parts[0] == "return")
+	{
+		fields.push_back("C_RETURN");
+	}
 	else				
 	{
 		fields.push_back("C_ARITHMETIC");

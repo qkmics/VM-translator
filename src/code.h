@@ -1,4 +1,3 @@
-#pragma once
 #include <string>
 #include <fstream>
 #include <vector>
@@ -23,6 +22,8 @@ private:
 	// code. It is used to make sure that these lables do not repeat.
 	int compAriNumber;
 
+	int compReturnNumber;
+
 	unordered_map<string, vector<string>> codeTable;
 	
 	void output(const vector<string>& outLines);
@@ -30,6 +31,16 @@ private:
 	void generateArithmetic(string operation);
 
 	void generateMemAccess(string operation, string segment, string offset);
+
+	void generateProgramFlow(string operation, string label);
+
+	void generateFunctionCall(string operation, string label);
+
+	void generateFunctionReturn();
+
+	void generateFunctionDef(string operation, string label);
+
+
 
 	void generatConstant(string offset);								//segment=constant
 

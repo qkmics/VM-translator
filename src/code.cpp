@@ -3,6 +3,7 @@
 Code::Code(string outputFileName)
 {
 	compAriNumber = 0;
+	compReturnNumber = 0;
 	this->outputFileName = extractFileName(outputFileName);
 	outputFile.open(outputFileName);
 
@@ -43,37 +44,118 @@ void Code::generateCode(const vector<vector<string>>& fields)
 		{
 			generateArithmetic(onelineField[1]);
 		}
+		else if (onelineField[0] == "C_GOTO" || onelineField[0] == "C_IF-GOTO" || onelineField[0] == "C_LABEL")
+		{
+			generateProgramFlow(onelineField[0], onelineField[1]);
+		}
+		else if (onelineField[0] == "C_CALL")
+		{
+			generateFunctionCall(onelineField[1], onelineField[2]);
+		}
+		else if (onelineField[0] == "C_RETURN")
+		{
+			generateFunctionReturn();
+		}
+		else if (onelineField[0] == "C_FUNCTION")
+		{
+			generateFunctionDef(onelineField[1], onelineField[2]);
+		}
 	}
 }
 
-//split a string 
-vector<string> Code::split(const string& str, char c)  
+void Code::generateProgramFlow(string operation, string label)
 {
-	vector<string> result;
-	string temp = "";
-	for (int i = 0;i < str.size();i++)
+	if (operation == "C_GOTO")
 	{
-		if (str[i] != c)
-		{
-			temp.push_back(str[i]);
-		}
-		else
-		{
-			result.push_back(temp);
-			temp = "";
-		}
+		outputFile << "@" << label << endl;
+		outputFile << "0;JMP" << endl;
 	}
-	if (temp.size())
-		result.push_back(temp);
-	return result;
+	else if (operation == "C_IF-GOTO")
+	{
+		outputFile << "@SP" << endl;
+		outputFile << "AM = M - 1" << endl;
+		outputFile << "D = M" << endl;
+		outputFile << "@" << label << endl;
+		outputFile << "D;JNE" << endl;
+	}
+	else if(operation == "C_LABEL")
+	{
+		outputFile << "(" << label << ")" << endl;
+	}
 }
 
-string Code::extractFileName(const string& fileName)
+void Code::generateFunctionDef(string name, string locNum)
 {
-	vector<string> strs = split(fileName,'\\');  
-	for(int i=0;i<4;i++)			// pop .asm
-		strs[strs.size()-1].pop_back();
-	return strs[strs.size() - 1];
+	outputFile << "(" << name << ")" << endl;
+
+	int number = stoi(locNum);
+	for (int i = 0;i < number;i++)
+	{
+		outputFile << "@SP" << endl;
+		outputFile << "A = M" << endl;
+		outputFile << "M = 0" << endl;
+		outputFile << "@SP" << endl;
+		outputFile << "M = M + 1" << endl;
+	}
+}
+
+void Code::generateFunctionReturn()
+{
+	vector<string> outLines = {"@LCL","D = M","@Frame","M = D","D = D -1"
+								,"D = D-1","D = D-1","D = D-1","D = D-1","A = D",
+								"D = M","@RET","M = D","@SP","M = M - 1","A = M",
+								"D = M","@ARG","A = M","M = D","@ARG","D = M + 1",
+								"@SP","M = D","@Frame","AD = M - 1",
+								"D = M","@THAT","M = D","@Frame","D = M-1",
+								"AD = D - 1","D = M","@THIS","M = D","@Frame",
+								"D = M-1","D = D -1","AD = D -1","D = M","@ARG","M = D",
+								"@Frame","D = M - 1","D = D -1","D = D -1","AD = D -1","D = M","@LCL",
+								"M = D","@RET","A = M","0;JMP" };
+	for (string outLine : outLines)
+	{
+		if (outLine == "@Frame" || outLine == "@RET")
+			outputFile << outLine + to_string(compReturnNumber) << endl;
+		else
+			outputFile << outLine << endl;
+	}
+	compReturnNumber++;
+}
+
+void Code::generateFunctionCall(string name, string locNum)
+{
+	vector<string> outLinesP1 = { "@f.return.address","D = A","@SP","A = M","M = D","@SP","M = M+ 1"};
+	vector<string> outLinesP2 = { "D = M","@SP","A = M ","M = D","@SP","M = M + 1", };
+	vector<string> outLinesP3 = { "@ (n+5)","D = A ","@SP" ,"D = M - D" ,"@ARG" ,"M = D" ,"@SP" ,"D = M" ,"@LCL" ,"M = D" ,"@f" ,"0;JMP" ,"(f.return.address)" };
+	
+	for (string outLine : outLinesP1)
+	{
+		if (outLine == "@f.return.address")
+			outputFile << "@" + name + ".return.address" << endl;
+		else
+			outputFile << outLine << endl;
+	}
+
+	vector<string> segs = { "@LCL","@ARG","@THIS","@THAT" };
+	for (int i = 0;i < segs.size();i++)
+	{
+		outputFile << segs[i] << endl;
+		for (string outLine : outLinesP2)
+		{
+			outputFile << outLine << endl;
+		}
+	}
+	
+	for (string outLine : outLinesP3)
+	{
+		if (outLine == "@ (n+5)")
+			outputFile << "@" + to_string(stoi(locNum) + 5) << endl;
+		else if (outLine == "@f")
+			outputFile << "@" + name << endl;
+		else if (outLine == "(f.return.address)")
+			outputFile << "(" + name + ".return.address)" << endl;
+		else
+			outputFile << outLine << endl;
+	}
 }
 
 /*
@@ -227,4 +309,34 @@ void Code::output(const vector<string>& outLines)
 		outputFile << outLine << endl;
 	}
 
+}
+
+//split a string 
+vector<string> Code::split(const string& str, char c)
+{
+	vector<string> result;
+	string temp = "";
+	for (int i = 0;i < str.size();i++)
+	{
+		if (str[i] != c)
+		{
+			temp.push_back(str[i]);
+		}
+		else
+		{
+			result.push_back(temp);
+			temp = "";
+		}
+	}
+	if (temp.size())
+		result.push_back(temp);
+	return result;
+}
+
+string Code::extractFileName(const string& fileName)
+{
+	vector<string> strs = split(fileName, '\\');
+	for (int i = 0;i < 4;i++)			// pop .asm
+		strs[strs.size() - 1].pop_back();
+	return strs[strs.size() - 1];
 }
