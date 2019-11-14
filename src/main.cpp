@@ -1,7 +1,8 @@
 #include "code.h"
 #include "parser.h"
 #include "preprocessor.h"
-#include <filesystem>
+#include <dirent.h>
+//#include <experimental/filesystem>
 //split a string 
 vector<string> split(const string& str, char c)
 {
@@ -25,7 +26,7 @@ vector<string> split(const string& str, char c)
 }
 string extractFileName(const string& fileName)
 {
-	vector<string> strs = split(fileName, '\\');
+	vector<string> strs = split(fileName, '/');
 	for (int i = 0;i < 3;i++)			// pop .vm
 		strs[strs.size() - 1].pop_back();
 	return strs[strs.size() - 1];
@@ -33,6 +34,7 @@ string extractFileName(const string& fileName)
 
 vector<string> getFileName(string inputName, string& outputName)
 {
+
 	vector<string> fileNames;
 	if (inputName.size() > 3 && inputName.substr(inputName.size() - 3) == ".vm") //singel file
 	{
@@ -42,12 +44,21 @@ vector<string> getFileName(string inputName, string& outputName)
 	else
 	{
 		//directory
-
+		struct dirent *ptr;
+		DIR* dir;	
+		
 		std::string path = inputName;
-		outputName = inputName + "\\"  + *(split(path, '\\').end() - 1) + ".asm";
-		for (const auto& entry : filesystem::directory_iterator(path))
+		dir=opendir(path.c_str());
+
+		outputName = inputName + "/"  + *(split(path, '/').end() - 1) + ".asm";
+		
+		//for (const auto& entry : experimental::filesystem::directory_iterator(path))
+		while(ptr=readdir(dir))
 		{
-			string fileName = entry.path().string();
+			if(ptr->d_name[0]=='.')
+				continue;
+			//string fileName = entry.path().string();
+			string fileName = path + "/" + ptr->d_name;
 			if (fileName.size() > 3 && fileName.substr(fileName.size() - 3) == ".vm")
 				fileNames.push_back(fileName);
 		}
@@ -70,6 +81,7 @@ int main(int argc, char* argv[])
 	vector<vector<string>> fields;
 	for (string inputFile : inputFiles)
 	{
+		cout<<inputFile<<endl;
 		Preprocessor preprocessor(inputFile);
 		vector<string> inLines = preprocessor.preprocess();				//preprocess input file
 		Parser parser(extractFileName(inputFile));
