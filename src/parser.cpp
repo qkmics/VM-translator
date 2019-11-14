@@ -1,5 +1,10 @@
 #include "parser.h"
 
+Parser::Parser(string inputFile)
+{
+	this->inputFile = inputFile;
+}
+
 /*
 	Parse all of the code input, return code of underlying fields
 	
@@ -46,13 +51,19 @@ vector<string> Parser::parseOneLine(string line)
 	{
 		fields.push_back("C_PUSH");
 		fields.push_back(parts[1]);
-		fields.push_back(parts[2]);
+		if (parts[1] == "static")
+			fields.push_back(inputFile + "." + parts[2]);
+		else
+			fields.push_back(parts[2]);
 	}
 	else if (parts[0] == "pop")	//pop instruction
 	{
 		fields.push_back("C_POP");
 		fields.push_back(parts[1]);
-		fields.push_back(parts[2]);
+		if (parts[1] == "static")
+			fields.push_back(inputFile + "." + parts[2]);
+		else
+			fields.push_back(parts[2]);
 	}
 	else if (parts[0] == "label") //lable instruction
 	{

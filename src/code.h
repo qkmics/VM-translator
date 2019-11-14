@@ -16,17 +16,23 @@ public:
 private:
 	ofstream outputFile;
 
-	string outputFileName;
+	string functionName;
+
+
 
 	// It is used for "eq", "gt" and "lt". Translating these vm language code needs lables in assemble language 
 	// code. It is used to make sure that these lables do not repeat.
 	int compAriNumber;
 
-	int compReturnNumber;
+	int returnNumber;
+
+	int funcCallNumber;
 
 	unordered_map<string, vector<string>> codeTable;
 	
 	void output(const vector<string>& outLines);
+
+	void bootstrap();
 
 	void generateArithmetic(string operation);
 

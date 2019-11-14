@@ -3,8 +3,9 @@
 Code::Code(string outputFileName)
 {
 	compAriNumber = 0;
-	compReturnNumber = 0;
-	this->outputFileName = extractFileName(outputFileName);
+	returnNumber = 0;
+	funcCallNumber = 0;
+	this->functionName = "";
 	outputFile.open(outputFileName);
 
 	codeTable["add"] = { "@SP","AM = M - 1","D = M","A = A - 1","M = M + D" };
@@ -26,6 +27,13 @@ Code::~Code()
 	outputFile.close();
 }
 
+void Code::bootstrap()
+{
+	vector<string> lines = {"@256","D = A","@SP","M = D"};
+	output(lines);
+	generateFunctionCall("Sys.init", "0");
+}
+
 /*
 	Generate assembler code from the underlying fields of code produced by parser
 
@@ -33,6 +41,7 @@ Code::~Code()
 */
 void Code::generateCode(const vector<vector<string>>& fields)
 {
+	bootstrap();
 	for (auto onelineField : fields)
 	{
 		string code;
@@ -63,8 +72,17 @@ void Code::generateCode(const vector<vector<string>>& fields)
 	}
 }
 
+/*
+	Generate an program flow instruction, including goto label, if-goto label and (label).
+
+	@para operation A string of operation. 
+	@para label
+*/
 void Code::generateProgramFlow(string operation, string label)
 {
+	//important, different functions need to have different label contexts
+	label = this->functionName + "." + label;
+
 	if (operation == "C_GOTO")
 	{
 		outputFile << "@" << label << endl;
@@ -84,8 +102,16 @@ void Code::generateProgramFlow(string operation, string label)
 	}
 }
 
+/*
+	Generate an function define instruction.
+
+	@para name function name
+	@para locNum number of local variable
+*/
 void Code::generateFunctionDef(string name, string locNum)
 {
+	this->functionName = name;   //store this function name, used for label
+
 	outputFile << "(" << name << ")" << endl;
 
 	int number = stoi(locNum);
@@ -99,6 +125,9 @@ void Code::generateFunctionDef(string name, string locNum)
 	}
 }
 
+/*
+	Generate an return instruction.
+*/
 void Code::generateFunctionReturn()
 {
 	vector<string> outLines = {"@LCL","D = M","@Frame","M = D","D = D -1"
@@ -114,14 +143,20 @@ void Code::generateFunctionReturn()
 	for (string outLine : outLines)
 	{
 		if (outLine == "@Frame" || outLine == "@RET")
-			outputFile << outLine + to_string(compReturnNumber) << endl;
+			outputFile << outLine + to_string(returnNumber) << endl;
 		else
 			outputFile << outLine << endl;
 	}
-	compReturnNumber++;
+	returnNumber++;
 }
 
-void Code::generateFunctionCall(string name, string locNum)
+/*
+	Generate an function call construction.
+
+	@para name function name
+	@para locNum number of parameter
+*/
+void Code::generateFunctionCall(string name, string paraNum)
 {
 	vector<string> outLinesP1 = { "@f.return.address","D = A","@SP","A = M","M = D","@SP","M = M+ 1"};
 	vector<string> outLinesP2 = { "D = M","@SP","A = M ","M = D","@SP","M = M + 1", };
@@ -130,7 +165,7 @@ void Code::generateFunctionCall(string name, string locNum)
 	for (string outLine : outLinesP1)
 	{
 		if (outLine == "@f.return.address")
-			outputFile << "@" + name + ".return.address" << endl;
+			outputFile << "@" + name + ".return.address" << funcCallNumber << endl;
 		else
 			outputFile << outLine << endl;
 	}
@@ -148,14 +183,16 @@ void Code::generateFunctionCall(string name, string locNum)
 	for (string outLine : outLinesP3)
 	{
 		if (outLine == "@ (n+5)")
-			outputFile << "@" + to_string(stoi(locNum) + 5) << endl;
+			outputFile << "@" + to_string(stoi(paraNum) + 5) << endl;
 		else if (outLine == "@f")
 			outputFile << "@" + name << endl;
 		else if (outLine == "(f.return.address)")
-			outputFile << "(" + name + ".return.address)" << endl;
+			outputFile << "(" + name + ".return.address" << funcCallNumber << ")" << endl;
 		else
 			outputFile << outLine << endl;
 	}
+
+	funcCallNumber++;
 }
 
 /*
@@ -247,14 +284,14 @@ void Code::generatStatic(string operation, string offset)
 	if (operation == "C_PUSH")
 	{
 		vector<string> outLines = { "@","D=M","@SP","A=M","M=D","@SP","M=M+1" };
-		outLines[0] += (outputFileName + "." + offset); //			@paddle.5 for example
+		outLines[0] += ("static." + offset); //			@paddle.5 for example
 		output(outLines);
 
 	}
 	else
 	{
 		vector<string> outLines = { "@SP","AM=M-1","D=M","@","M=D" };
-		outLines[3] += (outputFileName + "." + offset); //			@paddle.5 for example
+		outLines[3] += ("static." + offset); //			@paddle.5 for example
 		output(outLines);
 	}
 }
